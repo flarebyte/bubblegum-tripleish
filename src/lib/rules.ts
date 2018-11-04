@@ -14,7 +14,6 @@ interface Rules {
 }
 
 const regexLine = /[\r\n]+/;
-// TODO list int, str, ...
 const regexPredicateRule = /^[a-z_-]+[:][a-z/#_-]+ (string|integer|number|float|boolean|datetime|date|uri|iri)( (lang|many))*/i;
 
 const parsePredicateRule = (line: string): PredicateRule => {
