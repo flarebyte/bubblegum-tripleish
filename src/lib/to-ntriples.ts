@@ -22,8 +22,12 @@ const inflateCurieTriple = (prefixes: ReadonlyArray<[string, string]>) => (
 });
 
 export function enhanceTriple(rules: Rules): TripleTransform {
-  return (t: Triple) =>
-    inflateCurieTriple(rules.prefixes)(addLanguage(rules.language)(t));
+  return (t: Triple) => {
+    const processLanguage = addLanguage(rules.language);
+    const processCurie = inflateCurieTriple(rules.prefixes);
+    const pipeline: ReadonlyArray<any> = [processLanguage, processCurie];
+    return pipeline.reduce((xs, f) => f(xs), t);
+  };
 }
 export function enhanceTriples(rules: Rules): TriplesTransform {
   return (triples: ReadonlyArray<Triple>) => triples.map(enhanceTriple(rules));
