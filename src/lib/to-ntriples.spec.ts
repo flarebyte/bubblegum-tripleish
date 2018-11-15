@@ -9,12 +9,19 @@ const prefixes: ReadonlyArray<any> = [
   ['app', 'http://mysite.com/app/']
 ];
 
+const defaults: ReadonlyArray<any> = [
+  [Literal.Localized, 'ui:i18n/eng/gb/**'],
+  [Literal.Localized, '*:people/**/*-en'],
+  [Literal.IRI, 'ui:**/*-id']
+];
+
 const typedRule = (literal: Literal): [string, Literal] => {
   return [`ui:type/${literal}`, literal];
 };
 
 test('enhanceTriple should expand subject and predicate', t => {
   const rules: Rules = {
+    defaults,
     language,
     predicates: new Map([typedRule(Literal.Str)]),
     prefixes
@@ -31,6 +38,7 @@ test('enhanceTriple should expand subject and predicate', t => {
 
 test('enhanceTriple should add language when localized', t => {
   const rules: Rules = {
+    defaults,
     language,
     predicates: new Map([typedRule(Literal.Localized)]),
     prefixes
@@ -46,6 +54,7 @@ test('enhanceTriple should add language when localized', t => {
 
 test('enhanceTriple should support string', t => {
   const rules: Rules = {
+    defaults,
     language,
     predicates: new Map([typedRule(Literal.Str)]),
     prefixes
@@ -61,6 +70,7 @@ test('enhanceTriple should support string', t => {
 
 test('enhanceTriple should support IRI', t => {
   const rules: Rules = {
+    defaults,
     language,
     predicates: new Map([typedRule(Literal.IRI)]),
     prefixes
@@ -76,6 +86,7 @@ test('enhanceTriple should support IRI', t => {
 
 test('enhanceTriple should support Boolean', t => {
   const rules: Rules = {
+    defaults,
     language,
     predicates: new Map([typedRule(Literal.Bool)]),
     prefixes
@@ -104,6 +115,7 @@ test('enhanceTriple should support Boolean', t => {
 
 test('enhanceTriple should support integer', t => {
   const rules: Rules = {
+    defaults,
     language,
     predicates: new Map([typedRule(Literal.Int)]),
     prefixes
@@ -122,6 +134,7 @@ test('enhanceTriple should support integer', t => {
 
 test('enhanceTriple should support float', t => {
   const rules: Rules = {
+    defaults,
     language,
     predicates: new Map([typedRule(Literal.Float)]),
     prefixes
@@ -140,6 +153,7 @@ test('enhanceTriple should support float', t => {
 
 test('enhanceTriple should support date time', t => {
   const rules: Rules = {
+    defaults,
     language,
     predicates: new Map([typedRule(Literal.DateTime)]),
     prefixes
@@ -153,5 +167,24 @@ test('enhanceTriple should support date time', t => {
   t.deepEqual(
     actual.object,
     '"2018-11-18T14:13:07.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>'
+  );
+});
+
+test('enhanceTriple should support date', t => {
+  const rules: Rules = {
+    defaults,
+    language,
+    predicates: new Map([typedRule(Literal.Date)]),
+    prefixes
+  };
+  const enhancer = enhanceTriple(rules);
+  const actual = enhancer({
+    object: '2018-11-18',
+    predicate: 'ui:type/date',
+    subject: 'app:a/b/c'
+  });
+  t.deepEqual(
+    actual.object,
+    '"2018-11-18"^^<http://www.w3.org/2001/XMLSchema#date>'
   );
 });

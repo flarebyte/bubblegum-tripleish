@@ -26,6 +26,11 @@ const defaultRules = parseRules(content);
 
 test('parseRules should parse valid rules', t => {
   const expected: Rules = {
+    defaults: [
+      [Literal.Localized, 'ui:i18n/eng/gb/**'],
+      [Literal.Localized, '*:people/**/*-en'],
+      [Literal.IRI, 'ui:**/*-id']
+    ],
     language: 'en-GB',
     predicates: new Map([
       ['ui:someString', Literal.Str],

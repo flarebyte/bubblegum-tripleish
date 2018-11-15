@@ -22,6 +22,11 @@ const enforceDateTime = (value: string): string => {
   return isoDate.toISOString();
 };
 
+const enforceDate = (value: string): string => {
+  const isoDate = enforceDateTime(`${value}T00:00:00.000Z`);
+  return isoDate.substring(0, 10);
+};
+
 type stringTransformer = (value: string) => string;
 type updateMatcher = (value: string) => boolean;
 
@@ -53,7 +58,7 @@ const addFloat = () => (value: string) =>
 const addDateTime = () => (value: string) =>
   toDatatypeValue(Literal.DateTime, enforceDateTime(value));
 const addDate = () => (value: string) =>
-  toDatatypeValue(Literal.Date, enforceDateTime(value));
+  toDatatypeValue(Literal.Date, enforceDate(value));
 const addAnyURI = () => (value: string) =>
   toDatatypeValue(Literal.AnyURI, value);
 

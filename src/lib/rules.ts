@@ -4,6 +4,7 @@ interface Rules {
   readonly language: string;
   readonly prefixes: ReadonlyArray<[string, string]>;
   readonly predicates: Map<string, Literal>;
+  readonly defaults: ReadonlyArray<[Literal, string]>;
 }
 
 const regexLine = /[\r\n]+/;
@@ -23,10 +24,15 @@ const parseLanguage = (line: string): string => {
   return language || 'en';
 };
 
-const parsePrefix = (line: string): [string, string] => {
+const parseTuple = (line: string): [string, string] => {
   const words = line.split(' ', 3);
-  const [, curie, uri] = words;
-  return [curie, uri];
+  const [, left, right] = words;
+  return [left, right];
+};
+
+const parseDefault = (line: string): [Literal, string] => {
+  const [literal, wildchar] = parseTuple(line);
+  return [toLiteral(literal), wildchar];
 };
 
 const toMapOfPredicates = (
@@ -42,12 +48,15 @@ function parseRules(content: string): Rules {
   const lines = content.split(regexLine);
   const languageLine = lines.filter(s => regexLanguageLine.test(s))[0] || '';
   const prefixLines = lines.filter(s => s.startsWith('@prefix '));
+  const defaultLines = lines.filter(s => s.startsWith('@default '));
   const predicateLines = lines.filter(s => regexPredicateRule.test(s));
   const language = parseLanguage(languageLine);
-  const prefixes = prefixLines.map(parsePrefix);
+  const prefixes = prefixLines.map(parseTuple);
+  const defaults = defaultLines.map(parseDefault);
   const predicates = toMapOfPredicates(predicateLines);
 
   const allRules = {
+    defaults,
     language,
     predicates,
     prefixes
