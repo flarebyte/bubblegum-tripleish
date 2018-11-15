@@ -12,14 +12,14 @@ const prefixes: ReadonlyArray<any> = [
 test('inflateCurie should expand curie to url', t => {
   t.deepEqual(
     inflateCurie(prefixes, 'ui2:whatever/ui2:cool'),
-    'http://mysite.com/ui2/whatever/ui2:cool'
+    '<http://mysite.com/ui2/whatever/ui2:cool>'
   );
 });
 
-test('inflateCurie should expand not curie absent from rule', t => {
+test('inflateCurie should expand curie absent from rule', t => {
   t.deepEqual(
     inflateCurie(prefixes, 'ui4:whatever/ui:cool'),
-    'ui4:whatever/ui:cool'
+    '<ui4:whatever/ui:cool>'
   );
 });
 

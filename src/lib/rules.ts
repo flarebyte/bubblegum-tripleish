@@ -1,32 +1,20 @@
 import { Literal, toLiteral } from './literal';
 
-interface PredicateRule {
-  readonly curie: string;
-  readonly isLocalized: boolean;
-  readonly isMany: boolean;
-  readonly literal: Literal;
-}
-
 interface Rules {
   readonly language: string;
   readonly prefixes: ReadonlyArray<[string, string]>;
-  readonly rules: Map<string, PredicateRule>;
+  readonly predicates: Map<string, Literal>;
 }
 
 const regexLine = /[\r\n]+/;
-const regexPredicateRule = /^[a-z_-]+[:][a-z/#_-]+ (string|integer|number|float|boolean|datetime|date|uri|iri)( (lang|many))*/i;
+const regexPredicateRule = /^[a-z_-]+[:][a-z/#_-]+ (string|localized|integer|float|boolean|datetime|date|uri|iri)/i;
+const regexLanguageLine = /^@language [a-z]+('-'[a-z0-9]+)*/i;
 
-const parsePredicateRule = (line: string): PredicateRule => {
-  const words = line.split(' ', 4);
-  const [curie, literalKey, ...options] = words;
+const parsePredicateRule = (line: string): [string, Literal] => {
+  const words = line.split(' ', 2);
+  const [curie, literalKey] = words;
   const literal = toLiteral(literalKey);
-  const predicateRule: PredicateRule = {
-    curie,
-    isLocalized: options.includes('lang'),
-    isMany: options.includes('many'),
-    literal
-  };
-  return predicateRule;
+  return [curie, literal];
 };
 
 const parseLanguage = (line: string): string => {
@@ -41,35 +29,73 @@ const parsePrefix = (line: string): [string, string] => {
   return [curie, uri];
 };
 
-const asKeyPredicateTuple = (rule: PredicateRule): [string, PredicateRule] => [
-  rule.curie,
-  rule
-];
-
-const toMapOfPredicateRule = (
-  rules: ReadonlyArray<PredicateRule>
-): Map<string, PredicateRule> => {
-  const ruleArray: ReadonlyArray<[string, PredicateRule]> = rules.map(
-    asKeyPredicateTuple
+const toMapOfPredicates = (
+  lines: ReadonlyArray<string>
+): Map<string, Literal> => {
+  const ruleArray: ReadonlyArray<[string, Literal]> = lines.map(
+    parsePredicateRule
   );
-  return new Map<string, PredicateRule>(ruleArray);
+  return new Map<string, Literal>(ruleArray);
 };
 
 function parseRules(content: string): Rules {
   const lines = content.split(regexLine);
-  const languageLine = lines.filter(s => s.startsWith('@language'))[0] || '';
-  const prefixLines = lines.filter(s => s.startsWith('@prefix'));
-  const ruleLines = lines.filter(s => regexPredicateRule.test(s));
+  const languageLine = lines.filter(s => regexLanguageLine.test(s))[0] || '';
+  const prefixLines = lines.filter(s => s.startsWith('@prefix '));
+  const predicateLines = lines.filter(s => regexPredicateRule.test(s));
   const language = parseLanguage(languageLine);
   const prefixes = prefixLines.map(parsePrefix);
-  const rules = toMapOfPredicateRule(ruleLines.map(parsePredicateRule));
+  const predicates = toMapOfPredicates(predicateLines);
 
   const allRules = {
     language,
-    prefixes,
-    rules
+    predicates,
+    prefixes
   };
   return allRules;
 }
 
-export { parseRules, PredicateRule, Rules };
+const isLocalized = (rules: Rules, predicate: string): boolean => {
+  return rules.predicates.get(predicate) === Literal.Localized;
+};
+
+const isString = (rules: Rules, predicate: string): boolean => {
+  const literal = rules.predicates.get(predicate);
+  return literal ? literal === Literal.Str : true;
+};
+
+const isIRI = (rules: Rules, predicate: string): boolean => {
+  return rules.predicates.get(predicate) === Literal.IRI;
+};
+
+const matchLiteral = (
+  rules: Rules,
+  literal: Literal,
+  predicate: string
+): boolean => {
+  return rules.predicates.get(predicate) === literal;
+};
+
+const getLiteral = (rules: Rules, predicate: string): Literal => {
+  const specialLiteral = isLocalized(rules, predicate)
+    ? Literal.Localized
+    : isIRI(rules, predicate)
+      ? Literal.IRI
+      : Literal.Unknown;
+
+  const maybeLiteral = rules.predicates.get(predicate);
+
+  return specialLiteral !== Literal.Unknown
+    ? specialLiteral
+    : maybeLiteral || Literal.Str;
+};
+
+export {
+  getLiteral,
+  isIRI,
+  isLocalized,
+  isString,
+  matchLiteral,
+  parseRules,
+  Rules
+};

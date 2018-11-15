@@ -6,7 +6,8 @@ const inflateCurie = (
 
   const repl = prefixes.filter(tuple => tuple[0] === prefix)[0];
 
-  return repl ? value.replace(`${repl[0]}:`, repl[1]) : value;
+  const iri = repl ? value.replace(`${repl[0]}:`, repl[1]) : value;
+  return iri.startsWith('<') ? iri : `<${iri}>`;
 };
 
 const deflateCurie = (
