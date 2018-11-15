@@ -59,21 +59,8 @@ const isLocalized = (rules: Rules, predicate: string): boolean => {
   return rules.predicates.get(predicate) === Literal.Localized;
 };
 
-const isString = (rules: Rules, predicate: string): boolean => {
-  const literal = rules.predicates.get(predicate);
-  return literal ? literal === Literal.Str : true;
-};
-
 const isIRI = (rules: Rules, predicate: string): boolean => {
   return rules.predicates.get(predicate) === Literal.IRI;
-};
-
-const matchLiteral = (
-  rules: Rules,
-  literal: Literal,
-  predicate: string
-): boolean => {
-  return rules.predicates.get(predicate) === literal;
 };
 
 const getLiteral = (rules: Rules, predicate: string): Literal => {
@@ -90,12 +77,10 @@ const getLiteral = (rules: Rules, predicate: string): Literal => {
     : maybeLiteral || Literal.Str;
 };
 
-export {
-  getLiteral,
-  isIRI,
-  isLocalized,
-  isString,
-  matchLiteral,
-  parseRules,
-  Rules
+const matchLiteral = (rules: Rules, literal: Literal) => (
+  predicate: string
+) => {
+  return getLiteral(rules, predicate) === literal;
 };
+
+export { getLiteral, matchLiteral, parseRules, Rules };

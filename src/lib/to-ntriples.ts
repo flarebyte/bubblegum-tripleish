@@ -1,98 +1,61 @@
 import { Triple } from 'ntriples-collection';
 import { inflateCurie } from './curie';
 import { Literal, toDatatypeValue } from './literal';
-import {
-  getLiteral,
-  isIRI,
-  isLocalized,
-  isString,
-  matchLiteral,
-  Rules
-} from './rules';
+import { getLiteral, matchLiteral, Rules } from './rules';
 
 type TripleTransform = (triple: Triple) => Triple;
 type TriplesTransform = (
   triples: ReadonlyArray<Triple>
 ) => ReadonlyArray<Triple>;
 
-const addLanguage = (rules: Rules) => (triple: Triple) =>
-  isLocalized(rules, triple.predicate)
-    ? {
-        object: `"${triple.object}"@${rules.language}`,
-        predicate: triple.predicate,
-        subject: triple.subject
-      }
-    : triple;
-
-const addString = (rules: Rules) => (triple: Triple) =>
-  isString(rules, triple.predicate)
-    ? {
-        object: `"${triple.object}"`,
-        predicate: triple.predicate,
-        subject: triple.subject
-      }
-    : triple;
-
-const addIRI = (rules: Rules) => (triple: Triple) =>
-  isIRI(rules, triple.predicate)
-    ? {
-        object: inflateCurie(rules.prefixes, triple.object),
-        predicate: triple.predicate,
-        subject: triple.subject
-      }
-    : triple;
-
-const addBoolean = (rules: Rules) => (triple: Triple) =>
-  matchLiteral(rules, Literal.Bool, triple.predicate)
-    ? {
-        object:
-          triple.object === 'true'
-            ? toDatatypeValue(Literal.Bool, 'true')
-            : toDatatypeValue(Literal.Bool, 'false'),
-        predicate: triple.predicate,
-        subject: triple.subject
-      }
-    : triple;
-
-const forceInt = (value: string): string => {
+const enforceInt = (value: string): string => {
   const num = parseInt(value, 10);
   return isNaN(num) ? '0' : num.toString();
 };
-const forceFloat = (value: string): string => {
+const enforceFloat = (value: string): string => {
   const num = parseFloat(value);
   return isNaN(num) ? '0' : num.toString();
 };
 
-const forceDateTime = (value: string): string => {
+const enforceDateTime = (value: string): string => {
   const isoDate = new Date(value);
   return isoDate.toISOString();
 };
-const addInteger = (rules: Rules) => (triple: Triple) =>
-  matchLiteral(rules, Literal.Int, triple.predicate)
+
+type stringTransformer = (value: string) => string;
+type updateMatcher = (value: string) => boolean;
+
+const updateObject = (transf: stringTransformer, matcher: updateMatcher) => (
+  triple: Triple
+) =>
+  matcher(triple.predicate)
     ? {
-        object: toDatatypeValue(Literal.Int, forceInt(triple.object)),
+        object: transf(triple.object),
         predicate: triple.predicate,
         subject: triple.subject
       }
     : triple;
 
-const addFloat = (rules: Rules) => (triple: Triple) =>
-  matchLiteral(rules, Literal.Float, triple.predicate)
-    ? {
-        object: toDatatypeValue(Literal.Float, forceFloat(triple.object)),
-        predicate: triple.predicate,
-        subject: triple.subject
-      }
-    : triple;
+const addLanguage = (rules: Rules) => (value: string) =>
+  `"${value}"@${rules.language}`;
+const addString = () => (value: string) => `"${value}"`;
+const addIRI = (rules: Rules) => (value: string) =>
+  inflateCurie(rules.prefixes, value);
+const addBoolean = () => (value: string) =>
+  value === 'true'
+    ? toDatatypeValue(Literal.Bool, 'true')
+    : toDatatypeValue(Literal.Bool, 'false');
 
-const addDateTime = (rules: Rules) => (triple: Triple) =>
-  matchLiteral(rules, Literal.DateTime, triple.predicate)
-    ? {
-        object: toDatatypeValue(Literal.DateTime, forceDateTime(triple.object)),
-        predicate: triple.predicate,
-        subject: triple.subject
-      }
-    : triple;
+const addInteger = () => (value: string) =>
+  toDatatypeValue(Literal.Int, enforceInt(value));
+const addFloat = () => (value: string) =>
+  toDatatypeValue(Literal.Float, enforceFloat(value));
+const addDateTime = () => (value: string) =>
+  toDatatypeValue(Literal.DateTime, enforceDateTime(value));
+const addDate = () => (value: string) =>
+  toDatatypeValue(Literal.Date, enforceDateTime(value));
+const addAnyURI = () => (value: string) =>
+  toDatatypeValue(Literal.AnyURI, value);
 
 const inflateCurieTriple = (prefixes: ReadonlyArray<[string, string]>) => (
   triple: Triple
@@ -105,25 +68,28 @@ const inflateCurieTriple = (prefixes: ReadonlyArray<[string, string]>) => (
 const normalizeObjectByLiteral = (rules: Rules, literal: Literal) => {
   switch (literal) {
     case Literal.Str:
-      return addString(rules);
+      return updateObject(addString(), matchLiteral(rules, Literal.Str));
     case Literal.Localized:
-      return addLanguage(rules);
+      return updateObject(
+        addLanguage(rules),
+        matchLiteral(rules, Literal.Localized)
+      );
     case Literal.Int:
-      return addInteger(rules);
+      return updateObject(addInteger(), matchLiteral(rules, Literal.Int));
     case Literal.Float:
-      return addFloat(rules);
+      return updateObject(addFloat(), matchLiteral(rules, Literal.Float));
     case Literal.Bool:
-      return addBoolean(rules);
+      return updateObject(addBoolean(), matchLiteral(rules, Literal.Bool));
     case Literal.DateTime:
-      return addDateTime(rules);
+      return updateObject(addDateTime(), matchLiteral(rules, Literal.DateTime));
     case Literal.Date:
-      return addDateTime(rules);
+      return updateObject(addDate(), matchLiteral(rules, Literal.Date));
     case Literal.AnyURI:
-      return addString(rules);
+      return updateObject(addAnyURI(), matchLiteral(rules, Literal.AnyURI));
     case Literal.IRI:
-      return addIRI(rules);
+      return updateObject(addIRI(rules), matchLiteral(rules, Literal.IRI));
     default:
-      return addString(rules);
+      return updateObject(addString(), matchLiteral(rules, Literal.Str));
   }
 };
 

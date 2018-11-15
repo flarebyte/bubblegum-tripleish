@@ -1,13 +1,6 @@
 import test from 'ava';
 import { Literal } from './literal';
-import {
-  isIRI,
-  isLocalized,
-  isString,
-  matchLiteral,
-  parseRules,
-  Rules
-} from './rules';
+import { matchLiteral, parseRules, Rules } from './rules';
 
 const content = [
   '@language en-GB',
@@ -59,51 +52,53 @@ test('parseRules should parse valid rules', t => {
 });
 
 test('isLocalized should be true for a localized predicate', t => {
-  const actual = isLocalized(defaultRules, 'ui:someLangString');
+  const actual = matchLiteral(defaultRules, Literal.Localized)(
+    'ui:someLangString'
+  );
   t.deepEqual(actual, true);
 });
 
 test('isLocalized should be false for a string predicate', t => {
-  const actual = isLocalized(defaultRules, 'ui:someString');
+  const actual = matchLiteral(defaultRules, Literal.Localized)('ui:someString');
   t.deepEqual(actual, false);
 });
 
 test('isLocalized should be false for an unknown string', t => {
-  const actual = isLocalized(defaultRules, 'ui:whatever');
+  const actual = matchLiteral(defaultRules, Literal.Localized)('ui:whatever');
   t.deepEqual(actual, false);
 });
 
 test('isString should be true for a string predicate', t => {
-  const actual = isString(defaultRules, 'ui:someString');
+  const actual = matchLiteral(defaultRules, Literal.Str)('ui:someString');
   t.deepEqual(actual, true);
 });
 
 test('isString should be false for a boolean predicate', t => {
-  const actual = isString(defaultRules, 'ui:some_Bool');
+  const actual = matchLiteral(defaultRules, Literal.Str)('ui:some_Bool');
   t.deepEqual(actual, false);
 });
 
 test('isString should be true as a default', t => {
-  const actual = isString(defaultRules, 'ui:whatever');
+  const actual = matchLiteral(defaultRules, Literal.Str)('ui:whatever');
   t.deepEqual(actual, true);
 });
 
 test('isIRI should be true for an IRI predicate', t => {
-  const actual = isIRI(defaultRules, 'ui-plus:someIri');
+  const actual = matchLiteral(defaultRules, Literal.IRI)('ui-plus:someIri');
   t.deepEqual(actual, true);
 });
 
 test('isIRI should be false for a boolean predicate', t => {
-  const actual = isIRI(defaultRules, 'ui:some_Bool');
+  const actual = matchLiteral(defaultRules, Literal.IRI)('ui:some_Bool');
   t.deepEqual(actual, false);
 });
 
 test('matchLiteral should be true for the given literal', t => {
-  const actual = matchLiteral(defaultRules, Literal.Bool, 'ui:some_Bool');
+  const actual = matchLiteral(defaultRules, Literal.Bool)('ui:some_Bool');
   t.deepEqual(actual, true);
 });
 
 test('matchLiteral should be false for an unexpected predicate', t => {
-  const actual = matchLiteral(defaultRules, Literal.Bool, 'ui:someString');
+  const actual = matchLiteral(defaultRules, Literal.Bool)('ui:someString');
   t.deepEqual(actual, false);
 });
