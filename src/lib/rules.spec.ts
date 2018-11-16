@@ -14,7 +14,7 @@ const content = [
   'ui:someLangString localized',
   'ui:some-Int integer',
   'ui:some#Float float',
-  'ui:some_Bool boolean',
+  'ui:some_Bool布尔 boolean',
   'ui:someDateTime datetime',
   'ui:someDate date',
   'ui_plus:someUri uri',
@@ -27,9 +27,9 @@ const defaultRules = parseRules(content);
 test('parseRules should parse valid rules', t => {
   const expected: Rules = {
     defaults: [
-      [Literal.Localized, 'ui:i18n/eng/gb/**'],
-      [Literal.Localized, '*:people/**/*-en'],
-      [Literal.IRI, 'ui:**/*-id']
+      [Literal.Localized, /ui:i18n\/eng\/gb\/.+/],
+      [Literal.Localized, /[^\/]+:people\/.+\/[^\/]+-en/],
+      [Literal.IRI, /ui:.+\/[^\/]+-id/]
     ],
     language: 'en-GB',
     predicates: new Map([
@@ -37,7 +37,7 @@ test('parseRules should parse valid rules', t => {
       ['ui:someLangString', Literal.Localized],
       ['ui:some-Int', Literal.Int],
       ['ui:some#Float', Literal.Float],
-      ['ui:some_Bool', Literal.Bool],
+      ['ui:some_Bool布尔', Literal.Bool],
       ['ui:someDateTime', Literal.DateTime],
       ['ui:someDate', Literal.Date],
       ['ui_plus:someUri', Literal.AnyURI],
@@ -54,6 +54,7 @@ test('parseRules should parse valid rules', t => {
   t.deepEqual(defaultRules.language, expected.language);
   t.deepEqual(defaultRules.prefixes, expected.prefixes);
   t.deepEqual(defaultRules.predicates, expected.predicates);
+  t.deepEqual(defaultRules.defaults, expected.defaults);
 });
 
 test('isLocalized should be true for a localized predicate', t => {
@@ -79,7 +80,7 @@ test('isString should be true for a string predicate', t => {
 });
 
 test('isString should be false for a boolean predicate', t => {
-  const actual = matchLiteral(defaultRules, Literal.Str)('ui:some_Bool');
+  const actual = matchLiteral(defaultRules, Literal.Str)('ui:some_Bool布尔');
   t.deepEqual(actual, false);
 });
 
@@ -94,12 +95,12 @@ test('isIRI should be true for an IRI predicate', t => {
 });
 
 test('isIRI should be false for a boolean predicate', t => {
-  const actual = matchLiteral(defaultRules, Literal.IRI)('ui:some_Bool');
+  const actual = matchLiteral(defaultRules, Literal.IRI)('ui:some_Bool布尔');
   t.deepEqual(actual, false);
 });
 
 test('matchLiteral should be true for the given literal', t => {
-  const actual = matchLiteral(defaultRules, Literal.Bool)('ui:some_Bool');
+  const actual = matchLiteral(defaultRules, Literal.Bool)('ui:some_Bool布尔');
   t.deepEqual(actual, true);
 });
 

@@ -10,9 +10,9 @@ const prefixes: ReadonlyArray<any> = [
 ];
 
 const defaults: ReadonlyArray<any> = [
-  [Literal.Localized, 'ui:i18n/eng/gb/**'],
-  [Literal.Localized, '*:people/**/*-en'],
-  [Literal.IRI, 'ui:**/*-id']
+  [Literal.Localized, /ui:i18n\/eng\/gb\/.+/],
+  [Literal.Localized, /[^\/]+:people\/.+\/[^\/]+-en/],
+  [Literal.IRI, /ui:.+\/[^\/]+-id/]
 ];
 
 const typedRule = (literal: Literal): [string, Literal] => {
@@ -52,6 +52,38 @@ test('enhanceTriple should add language when localized', t => {
   t.deepEqual(actual.object, '"some text"@en-GB');
 });
 
+test('enhanceTriple should add language when localized for a default path with **', t => {
+  const rules: Rules = {
+    defaults,
+    language,
+    predicates: new Map([]),
+    prefixes
+  };
+  const enhancer = enhanceTriple(rules);
+  const actual = enhancer({
+    object: 'some text',
+    predicate: 'ui:i18n/eng/gb/a/b/c',
+    subject: 'app:a/b/c'
+  });
+  t.deepEqual(actual.object, '"some text"@en-GB');
+});
+
+test('enhanceTriple should add language when localized for a default path with single *', t => {
+  const rules: Rules = {
+    defaults,
+    language,
+    predicates: new Map([]),
+    prefixes
+  };
+  const enhancer = enhanceTriple(rules);
+  const actual = enhancer({
+    object: 'some text',
+    predicate: 'ui:people/a/b/description-en',
+    subject: 'app:a/b/c'
+  });
+  t.deepEqual(actual.object, '"some text"@en-GB');
+});
+
 test('enhanceTriple should support string', t => {
   const rules: Rules = {
     defaults,
@@ -79,6 +111,22 @@ test('enhanceTriple should support IRI', t => {
   const actual = enhancer({
     object: 'app:x/z',
     predicate: 'ui:type/iri',
+    subject: 'app:a/b/c'
+  });
+  t.deepEqual(actual.object, '<http://mysite.com/app/x/z>');
+});
+
+test('enhanceTriple should support IRI for default path', t => {
+  const rules: Rules = {
+    defaults,
+    language,
+    predicates: new Map([]),
+    prefixes
+  };
+  const enhancer = enhanceTriple(rules);
+  const actual = enhancer({
+    object: 'app:x/z',
+    predicate: 'ui:a/b/c/company-id',
     subject: 'app:a/b/c'
   });
   t.deepEqual(actual.object, '<http://mysite.com/app/x/z>');

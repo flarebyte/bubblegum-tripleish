@@ -4,12 +4,13 @@ interface Rules {
   readonly language: string;
   readonly prefixes: ReadonlyArray<[string, string]>;
   readonly predicates: Map<string, Literal>;
-  readonly defaults: ReadonlyArray<[Literal, string]>;
+  readonly defaults: ReadonlyArray<[Literal, RegExp]>;
 }
 
 const regexLine = /[\r\n]+/;
-const regexPredicateRule = /^[a-z_-]+[:][a-z/#_-]+ (string|localized|integer|float|boolean|datetime|date|uri|iri)/i;
+const regexPredicateRule = /^[a-z_-]+[:][^:\u0000-\u0020<>"{}|^`\\]+ (string|localized|integer|float|boolean|datetime|date|uri|iri)/i;
 const regexLanguageLine = /^@language [a-z]+('-'[a-z0-9]+)*/i;
+const regexdefaultLine = /^@default (localized|iri) [a-z_*-]+[:][^:\u0000-\u0020<>"{}|^`\\]+/i;
 
 const parsePredicateRule = (line: string): [string, Literal] => {
   const words = line.split(' ', 2);
@@ -30,9 +31,13 @@ const parseTuple = (line: string): [string, string] => {
   return [left, right];
 };
 
-const parseDefault = (line: string): [Literal, string] => {
+const parseDefault = (line: string): [Literal, RegExp] => {
   const [literal, wildchar] = parseTuple(line);
-  return [toLiteral(literal), wildchar];
+  const regex = wildchar
+    .replace(/\//g, '\\/')
+    .replace(/[*]{2}/g, '.+')
+    .replace(/[*]/g, '[^/]+');
+  return [toLiteral(literal), new RegExp(regex)];
 };
 
 const toMapOfPredicates = (
@@ -48,7 +53,7 @@ function parseRules(content: string): Rules {
   const lines = content.split(regexLine);
   const languageLine = lines.filter(s => regexLanguageLine.test(s))[0] || '';
   const prefixLines = lines.filter(s => s.startsWith('@prefix '));
-  const defaultLines = lines.filter(s => s.startsWith('@default '));
+  const defaultLines = lines.filter(s => regexdefaultLine.test(s));
   const predicateLines = lines.filter(s => regexPredicateRule.test(s));
   const language = parseLanguage(languageLine);
   const prefixes = prefixLines.map(parseTuple);
@@ -63,13 +68,20 @@ function parseRules(content: string): Rules {
   };
   return allRules;
 }
+const matchDefault = (rules: Rules, literal: Literal, predicate: string) =>
+  rules.defaults.findIndex(d => d[0] === literal && d[1].test(predicate)) !==
+  -1;
 
 const isLocalized = (rules: Rules, predicate: string): boolean => {
-  return rules.predicates.get(predicate) === Literal.Localized;
+  return rules.predicates.get(predicate) === Literal.Localized
+    ? true
+    : matchDefault(rules, Literal.Localized, predicate);
 };
 
 const isIRI = (rules: Rules, predicate: string): boolean => {
-  return rules.predicates.get(predicate) === Literal.IRI;
+  return rules.predicates.get(predicate) === Literal.IRI
+    ? true
+    : matchDefault(rules, Literal.IRI, predicate);
 };
 
 const getLiteral = (rules: Rules, predicate: string): Literal => {
